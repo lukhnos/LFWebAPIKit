@@ -243,6 +243,10 @@ void LFHRReadStreamClientCallBack(CFReadStreamRef stream, CFStreamEventType even
             return;
         }
 
+		// start tracking received bytes
+        _lastReceivedBytes = 0;
+        _lastReceivedDataUpdateTime = [NSDate timeIntervalSinceReferenceDate];
+
         // now we fire _receivedDataTracker
         _receivedDataTracker = [[NSTimer alloc] initWithFireDate:[NSDate date] interval:LFHTTPRequestDefaultTrackerFireInterval target:self selector:@selector(handleReceivedDataTrackerTick:) userInfo:nil repeats:YES];
         #if MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_4
@@ -259,9 +263,6 @@ void LFHRReadStreamClientCallBack(CFReadStreamRef stream, CFStreamEventType even
                 [[NSRunLoop currentRunLoop] addTimer:_receivedDataTracker forMode:NSEventTrackingRunLoopMode];
                 [[NSRunLoop currentRunLoop] addTimer:_receivedDataTracker forMode:NSModalPanelRunLoopMode];
         #endif
-
-        _lastReceivedBytes = 0;
-        _lastReceivedDataUpdateTime = [NSDate timeIntervalSinceReferenceDate];
     }
 
     // sets a 25,600-byte block, approximately for 256 KBPS connection
@@ -471,6 +472,9 @@ void LFHRReadStreamClientCallBack(CFReadStreamRef stream, CFStreamEventType even
     }
 
 
+	_lastSentBytes = 0;
+    _lastSentDataUpdateTime = [NSDate timeIntervalSinceReferenceDate];
+
     // we create _requestMessageBodyTracker (timer for tracking sent data) first
     _requestMessageBodyTracker = [[NSTimer alloc] initWithFireDate:[NSDate date] interval:LFHTTPRequestDefaultTrackerFireInterval target:self selector:@selector(handleRequestMessageBodyTrackerTick:) userInfo:nil repeats:YES];
 
@@ -488,9 +492,6 @@ void LFHRReadStreamClientCallBack(CFReadStreamRef stream, CFStreamEventType even
     [[NSRunLoop currentRunLoop] addTimer:_requestMessageBodyTracker forMode:NSEventTrackingRunLoopMode];
     [[NSRunLoop currentRunLoop] addTimer:_requestMessageBodyTracker forMode:NSModalPanelRunLoopMode];
     #endif
-
-    _lastSentBytes = 0;
-    _lastSentDataUpdateTime = [NSDate timeIntervalSinceReferenceDate];
 
     return YES;
 }
