@@ -56,8 +56,8 @@ static void LFSiteReachabilityCallback(SCNetworkReachabilityRef inTarget, SCNetw
 	[siteRequest setDelegate:nil];
 	[self stopChecking];
 	[siteRequest release];
-	[siteURL release];
-
+	[siteURL release];	
+	
     [super dealloc];
 }
 
@@ -74,10 +74,10 @@ static void LFSiteReachabilityCallback(SCNetworkReachabilityRef inTarget, SCNetw
 		siteRequest = [[LFHTTPRequest alloc] init];
 		[siteRequest setDelegate:self];
 		[siteRequest setTimeoutInterval:kDefaultTimeoutInterval];
-
+		
 		siteURL = [[NSURL URLWithString:kDefaultSite] retain];
 	}
-
+	
 	return self;
 }
 
@@ -91,7 +91,7 @@ static void LFSiteReachabilityCallback(SCNetworkReachabilityRef inTarget, SCNetw
 		if ([delegate respondsToSelector:@selector(reachability:siteIsNotAvailable:)]) {
 			[delegate reachability:self siteIsNotAvailable:siteURL];
 		}
-	}
+	}		
 }
 
 - (void)stopTimeoutTimer
@@ -99,9 +99,9 @@ static void LFSiteReachabilityCallback(SCNetworkReachabilityRef inTarget, SCNetw
 	if ([timeoutTimer isValid]) {
 		[timeoutTimer invalidate];
 	}
-
+	
 	[timeoutTimer release];
-	timeoutTimer = nil;
+	timeoutTimer = nil;	
 }
 
 - (void)handleReachabilityCallbackFlags:(SCNetworkReachabilityFlags)inFlags
@@ -110,20 +110,20 @@ static void LFSiteReachabilityCallback(SCNetworkReachabilityRef inTarget, SCNetw
 
 	LFSRDebug(@"%s, flags: 0x%08x", __PRETTY_FUNCTION__, inFlags);
 
-	if (inFlags & kSCNetworkReachabilityFlagsReachable) {
-		NSString *connectionType = (inFlags & kSCNetworkReachabilityFlagsIsWWAN) ? LFSiteReachabilityConnectionTypeWWAN : LFSiteReachabilityConnectionTypeWiFi;
-
+	if (inFlags & kSCNetworkReachabilityFlagsReachable) {						
+		NSString *connectionType = (inFlags & kSCNetworkReachabilityFlagsIsWWAN) ? LFSiteReachabilityConnectionTypeWWAN : LFSiteReachabilityConnectionTypeWiFi;		
+		
 		BOOL connectionRequestNotRequired = !(inFlags & kSCNetworkReachabilityFlagsConnectionRequired);
-
+		
 		if (siteURL) {
 			LFSRDebug(@"%s, connectionRequestNotRequired: %d, attempting to request from: %@", __PRETTY_FUNCTION__, connectionRequestNotRequired, siteURL);
-
+			
 			// next stage: send the request
 			[siteRequest cancelWithoutDelegateMessage];
 			[siteRequest setSessionInfo:connectionType];
 			if ([siteRequest performMethod:LFHTTPRequestHEADMethod onURL:siteURL withData:nil]) {
 				return;
-			}
+			}				
 		}
 		else {
 			if (lastCheckStatus != connectionType) {
@@ -131,11 +131,11 @@ static void LFSiteReachabilityCallback(SCNetworkReachabilityRef inTarget, SCNetw
 				if (connectionRequestNotRequired && [delegate respondsToSelector:@selector(reachability:site:isAvailableOverConnectionType:)]) {
 					[delegate reachability:self site:siteURL isAvailableOverConnectionType:connectionType];
 					return;
-				}
+				}			
 			}
 		}
 	}
-
+	
 	// if all fails
 	if (lastCheckStatus != LFSiteReachabilityNotReachableStatus) {
 		lastCheckStatus = LFSiteReachabilityNotReachableStatus;
@@ -152,17 +152,17 @@ static void LFSiteReachabilityCallback(SCNetworkReachabilityRef inTarget, SCNetw
 	bzero(&zeroAddress, sizeof(zeroAddress));
 	zeroAddress.sin_len = sizeof(zeroAddress);
 	zeroAddress.sin_family = AF_INET;
-
+	
 	SCNetworkReachabilityRef localReachability = SCNetworkReachabilityCreateWithAddress(NULL, (struct sockaddr *)&zeroAddress);
 	SCNetworkReachabilityFlags flags = 0;
-
+	
 	BOOL capable = NO;
 	if (SCNetworkReachabilityGetFlags(localReachability, &flags)) {
 		if (flags & kSCNetworkReachabilityFlagsReachable) {
 			capable = YES;
 		}
 	}
-
+	
 	CFRelease(localReachability);
 	return capable;
 }
@@ -176,20 +176,20 @@ static void LFSiteReachabilityCallback(SCNetworkReachabilityRef inTarget, SCNetw
 	bzero(&zeroAddress, sizeof(zeroAddress));
 	zeroAddress.sin_len = sizeof(zeroAddress);
 	zeroAddress.sin_family = AF_INET;
-
+	
 	reachability = SCNetworkReachabilityCreateWithAddress(NULL, (struct sockaddr *)&zeroAddress);
 	SCNetworkReachabilityFlags flags = 0;
-
+	
 	BOOL createTimeoutTimer = YES;
 	if (SCNetworkReachabilityGetFlags(reachability, &flags)) {
 		[self handleReachabilityCallbackFlags:flags];
 		createTimeoutTimer = NO;
 	}
-
+	
 	SCNetworkReachabilityContext context = {0, self, NULL, NULL, NULL};
 	SCNetworkReachabilitySetCallback(reachability, LFSiteReachabilityCallback, &context);
 	SCNetworkReachabilityScheduleWithRunLoop(reachability, CFRunLoopGetCurrent(), kCFRunLoopCommonModes);
-
+			
 	if (createTimeoutTimer) {
 		timeoutTimer = [[NSTimer scheduledTimerWithTimeInterval:[siteRequest timeoutInterval] target:self selector:@selector(handleTimeoutTimer:) userInfo:NULL repeats:NO] retain];
 	}
@@ -199,13 +199,13 @@ static void LFSiteReachabilityCallback(SCNetworkReachabilityRef inTarget, SCNetw
 {
 	[siteRequest cancelWithoutDelegateMessage];
 	[self stopTimeoutTimer];
-
+	
 	if (reachability) {
 		SCNetworkReachabilityUnscheduleFromRunLoop(reachability, CFRunLoopGetCurrent(), kCFRunLoopCommonModes);
 		CFRelease(reachability);
-		reachability = NULL;
+		reachability = NULL;		
 	}
-
+	
 	lastCheckStatus = nil;
 }
 
@@ -224,7 +224,11 @@ static void LFSiteReachabilityCallback(SCNetworkReachabilityRef inTarget, SCNetw
 	[siteRequest setTimeoutInterval:inInterval];
 }
 
+#if MAC_OS_X_VERSION_MAX_ALLOWED <= MAC_OS_X_VERSION_10_4                
+- (void)httpRequest:(LFHTTPRequest *)request didReceiveStatusCode:(int)statusCode URL:(NSURL *)url responseHeader:(CFHTTPMessageRef)header
+#else
 - (void)httpRequest:(LFHTTPRequest *)request didReceiveStatusCode:(NSUInteger)statusCode URL:(NSURL *)url responseHeader:(CFHTTPMessageRef)header
+#endif
 {
 	LFSRDebug(@"%s, code: %d, URL: %@, header: %@", __PRETTY_FUNCTION__, statusCode, url, (id)header);
 }
@@ -232,37 +236,50 @@ static void LFSiteReachabilityCallback(SCNetworkReachabilityRef inTarget, SCNetw
 - (void)httpRequestDidComplete:(LFHTTPRequest *)request
 {
 	LFSRDebug(@"%s, connection type: %@, received data: %@", __PRETTY_FUNCTION__, [request sessionInfo], [request receivedData]);
-
+	
 	if (lastCheckStatus != [request sessionInfo]) {
 		lastCheckStatus = [request sessionInfo];
 		if ([delegate respondsToSelector:@selector(reachability:site:isAvailableOverConnectionType:)]) {
 			[delegate reachability:self site:siteURL isAvailableOverConnectionType:[request sessionInfo]];
-		}
+		}	
 	}
 }
 
 - (void)httpRequest:(LFHTTPRequest *)request didFailWithError:(NSString *)error
 {
 	LFSRDebug(@"%s, error: %@", __PRETTY_FUNCTION__, error);
-
+	
 	if (lastCheckStatus != LFSiteReachabilityNotReachableStatus) {
 		lastCheckStatus = LFSiteReachabilityNotReachableStatus;
 		if ([delegate respondsToSelector:@selector(reachability:siteIsNotAvailable:)]) {
 			[delegate reachability:self siteIsNotAvailable:siteURL];
-		}
+		}	
 	}
 }
 
+#if MAC_OS_X_VERSION_MAX_ALLOWED <= MAC_OS_X_VERSION_10_4                
+- (id<LFSiteReachabilityDelegate>)delegate
+{
+	return delegate;
+}
+
+- (NSURL*)siteURL
+{
+	return [[siteURL retain] autorelease];
+}
+
+#else
 @synthesize delegate;
 @synthesize siteURL;
+#endif
 @end
 
 
 void LFSiteReachabilityCallback(SCNetworkReachabilityRef inTarget, SCNetworkReachabilityFlags inFlags, void *inInfo)
 {
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];	
 	LFSRDebug(@"%s, flags: 0x%08x", __PRETTY_FUNCTION__, inFlags);
 
-	[(LFSiteReachability *)inInfo handleReachabilityCallbackFlags:inFlags];
+	[(LFSiteReachability *)inInfo handleReachabilityCallbackFlags:inFlags];	
 	[pool drain];
 }
