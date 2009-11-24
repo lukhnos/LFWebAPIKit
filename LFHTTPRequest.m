@@ -129,9 +129,14 @@ void LFHRReadStreamClientCallBack(CFReadStreamRef stream, CFStreamEventType even
 
 - (void)_exitRunLoop
 {
+#if TARGET_OS_IPHONE
+	[_synchronousMessagePort sendBeforeDate:[NSDate date] msgid:0 components:nil from:_synchronousMessagePort reserved:0];
+	
+#else
 	NSPortMessage *message = [[[NSPortMessage alloc] initWithSendPort:_synchronousMessagePort receivePort:_synchronousMessagePort components:nil] autorelease];
 	[message setMsgid:0];
 	[message sendBeforeDate:[NSDate date]];	
+#endif
 }
 
 - (void)handleTimeout
