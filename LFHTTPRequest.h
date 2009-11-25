@@ -128,6 +128,7 @@ extern NSString *const LFHTTPRequestPOSTMethod;
 @property (readonly) NSUInteger expectedDataLength;
 @property (assign) id delegate;
 @property (retain) id sessionInfo;
+@property (readonly) BOOL isRunning;
 @property (assign) BOOL shouldWaitUntilDone;
 #endif
 @end
