@@ -18,7 +18,7 @@ static NSString *kSourceURLString = @"http://localhost/~lukhnos/timeout.php";
 
 - (void)httpRequestDidComplete:(LFHTTPRequest *)request
 {
-	NSLog(@"completed: %@", [[[NSString alloc] initWithData:request.receivedData encoding:NSUTF8StringEncoding] autorelease]);
+	NSLog(@"completed: %@, header: %@", [[[NSString alloc] initWithData:request.receivedData encoding:NSUTF8StringEncoding] autorelease], [request receivedHeader]);
 }
 
 - (void)httpRequest:(LFHTTPRequest *)request didFailWithError:(NSString *)error
@@ -47,7 +47,7 @@ int main (int argc, const char * argv[])
 	LFHTTPRequest *request = [[[LFHTTPRequest alloc] init] autorelease];
 	request.shouldWaitUntilDone = YES;
 	request.delegate = foo;
-	request.timeoutInterval = 2.0;
+	request.timeoutInterval = 10.0;
     
 	NSLog(@"start");
 	

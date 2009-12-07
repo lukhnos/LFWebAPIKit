@@ -107,6 +107,7 @@ void LFHRReadStreamClientCallBack(CFReadStreamRef stream, CFStreamEventType even
     [_requestHeader release];
     [_receivedData release];
     [_receivedContentType release];
+	[_receivedHeader release];
 
     [_sessionInfo release];
     _sessionInfo = nil;
@@ -248,6 +249,15 @@ void LFHRReadStreamClientCallBack(CFReadStreamRef stream, CFStreamEventType even
             [_receivedContentType release];
             _receivedContentType = nil;
 
+			[_receivedHeader release];
+			_receivedHeader = nil;
+			
+			CFDictionaryRef headerRef = CFHTTPMessageCopyAllHeaderFields(response);
+			if (headerRef) {
+				_receivedHeader = [[NSDictionary alloc] initWithDictionary:(NSDictionary *)headerRef];
+				CFRelease(headerRef);
+			}
+
             CFStringRef contentTypeString = CFHTTPMessageCopyHeaderFieldValue(response, CFSTR("Content-Type"));
             if (contentTypeString) {
                 _receivedContentType = [(NSString *)contentTypeString copy];
@@ -362,6 +372,9 @@ void LFHRReadStreamClientCallBack(CFReadStreamRef stream, CFStreamEventType even
 
 			[_receivedContentType release];
 			_receivedContentType = nil;
+
+			[_receivedHeader release];
+			_receivedHeader = nil;
 
 			CFStringRef contentTypeString = CFHTTPMessageCopyHeaderFieldValue(response, CFSTR("Content-Type"));
 			if (contentTypeString) {
@@ -643,6 +656,9 @@ void LFHRReadStreamClientCallBack(CFReadStreamRef stream, CFStreamEventType even
 
     [_receivedContentType release];
     _receivedContentType = nil;
+	
+	[_receivedHeader release];
+	_receivedHeader = nil;
 
     return returnedData;
 }
@@ -704,6 +720,11 @@ void LFHRReadStreamClientCallBack(CFReadStreamRef stream, CFStreamEventType even
 - (NSString *)receivedContentType
 {
 	return [[_receivedContentType copy] autorelease];
+}
+
+- (NSDictionary *)receivedHeader
+{
+	return [[_receivedHeader copy] autorelease];
 }
 
 - (NSUInteger)expectedDataLength

@@ -53,6 +53,7 @@ extern NSString *const LFHTTPRequestPOSTMethod;
 
     NSMutableData *_receivedData;
     NSString *_receivedContentType;
+	NSDictionary *_receivedHeader;
 
     CFReadStreamRef _readStream;
     NSTimer *_receivedDataTracker;
@@ -109,6 +110,7 @@ extern NSString *const LFHTTPRequestPOSTMethod;
 - (void)setContentType:(NSString *)contentType;
 - (NSData *)receivedData;
 - (NSString *)receivedContentType;
+- (NSDictionary *)receivedHeader;
 #if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_4
 - (NSUInteger)expectedDataLength;
 #else
