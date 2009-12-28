@@ -186,6 +186,11 @@ static void LFSiteReachabilityCallback(SCNetworkReachabilityRef inTarget, SCNetw
 		createTimeoutTimer = NO;
 	}
 	
+	if (!reachability) {
+	    // if the instance is gone, some handler must have called stopChecking
+        return;
+	}
+	
 	SCNetworkReachabilityContext context = {0, self, NULL, NULL, NULL};
 	SCNetworkReachabilitySetCallback(reachability, LFSiteReachabilityCallback, &context);
 	SCNetworkReachabilityScheduleWithRunLoop(reachability, CFRunLoopGetCurrent(), kCFRunLoopCommonModes);
