@@ -553,20 +553,23 @@ void LFHRReadStreamClientCallBack(CFReadStreamRef stream, CFStreamEventType even
         [tmp release];
     }
 
-    CFReadStreamScheduleWithRunLoop(tmpReadStream, CFRunLoopGetCurrent(), kCFRunLoopCommonModes);
+    @synchronized([self class]) {
+        CFReadStreamScheduleWithRunLoop(tmpReadStream, CFRunLoopGetCurrent(), kCFRunLoopCommonModes);
 
-    // we need to assign this in advance, because the callback might be called anytime between this and the next statement
-    _readStream = tmpReadStream;
+        // we need to assign this in advance, because the callback might be called anytime between this and the next statement
+        _readStream = tmpReadStream;
 
-    _expectedDataLength = NSUIntegerMax;
+        _expectedDataLength = NSUIntegerMax;
 
-    // open the stream
-    Boolean result = CFReadStreamOpen(tmpReadStream);
-    if (!result) {
-        CFReadStreamUnscheduleFromRunLoop(tmpReadStream, CFRunLoopGetCurrent(), kCFRunLoopCommonModes);
-        CFRelease(tmpReadStream);
-        _readStream = NULL;
-        return NO;
+        // open the stream
+        Boolean result = CFReadStreamOpen(tmpReadStream);
+            
+        if (!result) {
+            CFReadStreamUnscheduleFromRunLoop(tmpReadStream, CFRunLoopGetCurrent(), kCFRunLoopCommonModes);
+            CFRelease(tmpReadStream);
+            _readStream = NULL;
+            return NO;
+        }
     }
 
 
@@ -602,14 +605,20 @@ void LFHRReadStreamClientCallBack(CFReadStreamRef stream, CFStreamEventType even
 		BOOL isReentrant = (_synchronousMessagePort != nil);
 		
 		if (!isReentrant) {
-			_synchronousMessagePort = [[NSPort port] retain];
+			_synchronousMessagePort = [[NSPort alloc] init];
 			[currentRunLoop addPort:_synchronousMessagePort forMode:currentMode];
 		}
 		
+        NSDate *distantFuture = [NSDate distantFuture];
+        
         while ([self isRunning]) {
-            [currentRunLoop runMode:currentMode beforeDate:[NSDate distantFuture]];
+            @synchronized([self class]) {
+                [currentRunLoop runMode:currentMode beforeDate:distantFuture];
+            }
         }
 		
+        distantFuture = nil;
+        
 		if (!isReentrant) {
 			[currentRunLoop removePort:_synchronousMessagePort forMode:currentMode];
 			[_synchronousMessagePort release];
