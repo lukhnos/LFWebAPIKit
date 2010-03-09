@@ -656,6 +656,10 @@ void LFHRReadStreamClientCallBack(CFReadStreamRef stream, CFStreamEventType even
 }
 - (void)cancelWithoutDelegateMessage
 {
+	if (_shouldWaitUntilDone) {
+		[self _exitRunLoop];
+	}
+
     [self cleanUp];
 }
 - (NSData *)getReceivedDataAndDetachFromRequest
