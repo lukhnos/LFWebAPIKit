@@ -27,6 +27,7 @@
 //
 
 #import <SystemConfiguration/SystemConfiguration.h>
+#import <libkern/OSAtomic.h>
 #import "LFHTTPRequest.h"
 
 // these typedefs are for this compilation unit only
@@ -36,7 +37,7 @@
     #define NSUIntegerMax UINT_MAX
 #endif
 
-
+static OSSpinLock LFHTTPRequestSpinLock = OS_SPINLOCK_INIT;
 
 NSString *const LFHTTPRequestConnectionError = @"HTTP request connection lost";
 NSString *const LFHTTPRequestTimeoutError = @"HTTP request timeout";
@@ -553,7 +554,8 @@ void LFHRReadStreamClientCallBack(CFReadStreamRef stream, CFStreamEventType even
         [tmp release];
     }
 
-    @synchronized([self class]) {
+    OSSpinLockLock(&LFHTTPRequestSpinLock);
+    do {
         CFReadStreamScheduleWithRunLoop(tmpReadStream, CFRunLoopGetCurrent(), kCFRunLoopCommonModes);
 
         // we need to assign this in advance, because the callback might be called anytime between this and the next statement
@@ -568,10 +570,11 @@ void LFHRReadStreamClientCallBack(CFReadStreamRef stream, CFStreamEventType even
             CFReadStreamUnscheduleFromRunLoop(tmpReadStream, CFRunLoopGetCurrent(), kCFRunLoopCommonModes);
             CFRelease(tmpReadStream);
             _readStream = NULL;
+            OSSpinLockUnlock(&LFHTTPRequestSpinLock);
             return NO;
         }
-    }
-
+    } while (0);
+    OSSpinLockUnlock(&LFHTTPRequestSpinLock);
 
 	_lastSentBytes = 0;
     _lastSentDataUpdateTime = [NSDate timeIntervalSinceReferenceDate];
@@ -603,20 +606,26 @@ void LFHRReadStreamClientCallBack(CFReadStreamRef stream, CFStreamEventType even
 		}
 		
 		BOOL isReentrant = (_synchronousMessagePort != nil);
+        NSDate *distantFuture = nil;
 		
-		if (!isReentrant) {
-			_synchronousMessagePort = [[NSPort alloc] init];
-			[currentRunLoop addPort:_synchronousMessagePort forMode:currentMode];
-		}
-		
-        NSDate *distantFuture = [NSDate distantFuture];
+        OSSpinLockLock(&LFHTTPRequestSpinLock);
+        do {
+            if (!isReentrant) {
+                _synchronousMessagePort = [[NSPort alloc] init];
+                [currentRunLoop addPort:_synchronousMessagePort forMode:currentMode];
+            }
+            
+            distantFuture = [[NSDate distantFuture] retain];
+        } while(0);
+        OSSpinLockUnlock(&LFHTTPRequestSpinLock);
         
         while ([self isRunning]) {
-            @synchronized([self class]) {
-                [currentRunLoop runMode:currentMode beforeDate:distantFuture];
-            }
+            OSSpinLockLock(&LFHTTPRequestSpinLock);
+            [currentRunLoop runMode:currentMode beforeDate:distantFuture];
+            OSSpinLockUnlock(&LFHTTPRequestSpinLock);
         }
 		
+        [distantFuture release];
         distantFuture = nil;
         
 		if (!isReentrant) {
