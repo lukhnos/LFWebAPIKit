@@ -620,9 +620,13 @@ void LFHRReadStreamClientCallBack(CFReadStreamRef stream, CFStreamEventType even
         OSSpinLockUnlock(&LFHTTPRequestSpinLock);
         
         while ([self isRunning]) {
-            OSSpinLockLock(&LFHTTPRequestSpinLock);
+            // Nota bene: Removing locking here improves performance greatly, but might risk leaking memory in Apple's own SSL stack, you've been warned
+            
+            // OSSpinLockLock(&LFHTTPRequestSpinLock);
+            
             [currentRunLoop runMode:currentMode beforeDate:distantFuture];
-            OSSpinLockUnlock(&LFHTTPRequestSpinLock);
+            
+            // OSSpinLockUnlock(&LFHTTPRequestSpinLock);
         }
 		
         [distantFuture release];
